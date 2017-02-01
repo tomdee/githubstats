@@ -65,7 +65,7 @@ def get_issues_by_repo_and_type(issues):
     x.reversesort = True
     for k in counts.iterkeys():
         x.add_row([k, counts[k]["Total"], counts[k].get("Bug", 0), counts[k].get("Enhancement", 0), counts[k].get("Support", 0), counts[k].get("No type", 0)])
-    return str(x)
+    return str(x) + "\n"
 
 message += "```\n"
 message +=  "*** PR summary ***\n"
@@ -77,7 +77,7 @@ message += "```\n"
 message += "*** Issues summary ***\n"
 message += get_table("Issues by type ", all_open_issues, lambda x: check_labels(x.labels))
 message += get_table("Issues by repo", all_open_issues, lambda x: x.url.split('/')[-3])
-message += get_issues_by_repo_and_type(all_open_issues)
+message += get_issues_by_repo_and_type(all_open_issues) + "\n"
 message += "```\n"
 message += "```\n"
 message += "\n*** Release issues summary ***\n"
@@ -89,6 +89,6 @@ print message
 # TODO - Unreleased PRs merged by project since last release
 sc.api_call(
   "chat.postMessage",
-  channel="@tom",
+  channel=os.environ.get("SLACK_CHANNEL", "@tom"),
   text=message
 )
