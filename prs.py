@@ -13,8 +13,6 @@ all_open_prs = g.search_issues('is:open is:pr user:projectcalico')
 all_open_issues = g.search_issues('is:open is:issue user:projectcalico')
 all_open_issues_milestone = g.search_issues('is:open user:projectcalico milestone:"Calico v2.1.0"')
 
-message = ""
-
 def check_labels(labels):
     label = ""
     if "kind/support" in [x.name for x in labels]:
@@ -65,30 +63,34 @@ def get_issues_by_repo_and_type(issues):
     x.reversesort = True
     for k in counts.iterkeys():
         x.add_row([k, counts[k]["Total"], counts[k].get("Bug", 0), counts[k].get("Enhancement", 0), counts[k].get("Support", 0), counts[k].get("No type", 0)])
-    return str(x) + "\n"
+    return str(x)
 
-message += "```\n"
-message +=  "*** PR summary ***\n"
-message += get_table("PRs by raiser", all_open_prs, lambda x: x.user.login)
-message += get_table("PRs by assignee", all_open_prs, lambda x: x.assignee.login if x.assignee else "Unassigned")
-message += get_table("PRs by repo", all_open_prs, lambda x: x.url.split('/')[-3])
-message += "```\n"
-message += "```\n"
+def output(message):
+    message = "```\n%s\n```" % message
+    print message
+
+    # # TODO - Unreleased PRs merged by project since last release
+    sc.api_call(
+      "chat.postMessage",
+      channel=os.environ.get("SLACK_CHANNEL", "@tom"),
+      text=message
+    )
+message = ""
+message += "*** PR summary ***\n"
+message += get_table("PRs by raiser", all_open_prs, lambda x: x.user.login) + "\n"
+message += get_table("PRs by assignee", all_open_prs, lambda x: x.assignee.login if x.assignee else "Unassigned") + "\n"
+message += get_table("PRs by repo", all_open_prs, lambda x: x.url.split('/')[-3]) + "\n"
+output(message)
+
+message = ""
 message += "*** Issues summary ***\n"
-message += get_table("Issues by type ", all_open_issues, lambda x: check_labels(x.labels))
-message += get_table("Issues by repo", all_open_issues, lambda x: x.url.split('/')[-3])
+message += get_table("Issues by type ", all_open_issues, lambda x: check_labels(x.labels)) + "\n"
+message += get_table("Issues by repo", all_open_issues, lambda x: x.url.split('/')[-3]) + "\n"
 message += get_issues_by_repo_and_type(all_open_issues) + "\n"
-message += "```\n"
-message += "```\n"
-message += "\n*** Release issues summary ***\n"
-message += get_table("v2.1 milestone issues by assignee", all_open_issues_milestone, lambda x: x.assignee.login if x.assignee else "Unassigned")
-message += get_table("v2.1 milestone issues by repo", all_open_issues_milestone, lambda x: x.url.split('/')[-3])
-message += "```\n"
-print message
+output(message)
 
-# TODO - Unreleased PRs merged by project since last release
-sc.api_call(
-  "chat.postMessage",
-  channel=os.environ.get("SLACK_CHANNEL", "@tom"),
-  text=message
-)
+message = ""
+message += "\n*** Release issues summary ***\n"
+message += get_table("v2.1 milestone issues by assignee", all_open_issues_milestone, lambda x: x.assignee.login if x.assignee else "Unassigned") + "\n"
+message += get_table("v2.1 milestone issues by repo", all_open_issues_milestone, lambda x: x.url.split('/')[-3]) + "\n"
+output(message)
